@@ -1,77 +1,167 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, View, Text, Button } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { dpWaypointOptimizer, fetchChargingStations, fetchTeslaBatteryInfo } from './routeOptimizer';
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
 
-export default function HomeScreen() {
+export default function App() {
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [destination, setDestination] = useState({ latitude: 34.0522, longitude: -118.2437 }); // Los Angeles
+  const [optimizedRoute, setOptimizedRoute] = useState([]);
+  const [routePolyline, setRoutePolyline] = useState([]);
+  const [chargingStations, setChargingStations] = useState([]);
+  const [batteryInfo, setBatteryInfo] = useState({ currentBattery: 0, maxBattery: 100 });
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.log('Permission to access location was denied');
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({});
+      setCurrentLocation(location.coords);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (currentLocation) {
+      fetchData();
+      const intervalId = setInterval(fetchData, 60000); // Update every minute
+      return () => clearInterval(intervalId);
+    }
+  }, [currentLocation]);
+
+  const fetchData = async () => {
+    try {
+      const stations = await fetchChargingStations([currentLocation.latitude, currentLocation.longitude], 50000); // 50km radius
+      setChargingStations(stations);
+
+      // Hardcoded battery info for testing
+      const battery = { currentBattery: 75, maxBattery: 100 }; // Replace with fetchTeslaBatteryInfo() when available
+      setBatteryInfo(battery);
+
+      await updateRoute(stations, battery);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
+
+  const updateRoute = async (stations, battery) => {
+    if (!currentLocation) return;
+
+    try {
+      const optimizedWaypoints = await dpWaypointOptimizer(
+        [currentLocation.latitude, currentLocation.longitude],
+        [destination.latitude, destination.longitude],
+        battery.currentBattery,
+        battery.maxBattery,
+        stations
+      );
+
+      setOptimizedRoute(optimizedWaypoints);
+      await fetchRoutePolyline([currentLocation, ...optimizedWaypoints.map(station => station.location), destination]);
+    } catch (error) {
+      console.error('Error updating route:', error);
+    }
+  };
+
+  const fetchRoutePolyline = async (waypoints) => {
+    const waypointsString = waypoints.map(wp => `${wp.latitude},${wp.longitude}`).join('|');
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${currentLocation.latitude},${currentLocation.longitude}&destination=${destination.latitude},${destination.longitude}&waypoints=${waypointsString}&key=${GOOGLE_MAPS_API_KEY}`;
+
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+      const points = data.routes[0].overview_polyline.points;
+      const decodedPoints = decodePolyline(points);
+      setRoutePolyline(decodedPoints);
+    } catch (error) {
+      console.error('Error fetching route polyline:', error);
+    }
+  };
+
+  const decodePolyline = (encoded) => {
+    const poly = [];
+    let index = 0;
+    let len = encoded.length;
+    let lat = 0;
+    let lng = 0;
+
+    while (index < len) {
+      let b;
+      let shift = 0;
+      let result = 0;
+      
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      
+      let dlat = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+
+      do {
+        b = encoded.charCodeAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+
+      let dlng = ((result & 1) ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      poly.push({
+        latitude: lat / 1e5,
+        longitude: lng / 1e5,
+      });
+    }
+
+    return poly;
+  };
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12'
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      {currentLocation && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+        >
+          <Marker coordinate={currentLocation} title="You are here" />
+          <Marker coordinate={destination} title="Destination" />
+          {optimizedRoute.map((waypoint, index) => (
+            <Marker
+              key={index}
+              coordinate={{ latitude: waypoint.latitude, longitude: waypoint.longitude }}
+              title={waypoint.title}
+              description={waypoint.description}
+            />
+          ))}
+          <Polyline coordinates={routePolyline} strokeColor="#000" strokeWidth={2} />
+        </MapView>
+      )}
+      <Button title="Update Route" onPress={fetchData} />
+      <Text>Battery: {batteryInfo.currentBattery}% / {batteryInfo.maxBattery}%</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  map: {
+    flex: 1,
   },
 });
-
-
-
