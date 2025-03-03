@@ -233,3 +233,10 @@ maxBattery:
 100// Hardcoded maximum battery level 
 };
 }
+
+export default {
+    ChargingStation,
+    dpWaypointOptimizer,
+    fetchChargingStations,
+    fetchTeslaBatteryInfo
+  };
