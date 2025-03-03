@@ -23,11 +23,27 @@ class Node {
     }
 }
 
+// async function calculateDistance(loc1, loc2) {
+//     const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${loc1[0]},${loc1[1]}&destinations=${loc2[0]},${loc2[1]}&key=${GOOGLE_MAPS_API_KEY}`;
+//     const response = await axios.get(url);
+//     return response.data.rows[0].elements[0].distance.value / 1000; // Convert meters to km
+// }
+
 async function calculateDistance(loc1, loc2) {
-    const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${loc1[0]},${loc1[1]}&destinations=${loc2[0]},${loc2[1]}&key=${GOOGLE_MAPS_API_KEY}`;
-    const response = await axios.get(url);
-    return response.data.rows[0].elements[0].distance.value / 1000; // Convert meters to km
-}
+    try {
+      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?units=metric&origins=${loc1[0]},${loc1[1]}&destinations=${loc2[0]},${loc2[1]}&key=${GOOGLE_MAPS_API_KEY}`;
+      const response = await axios.get(url);
+      if (response.data && response.data.rows && response.data.rows[0] && response.data.rows[0].elements && response.data.rows[0].elements[0]) {
+        return response.data.rows[0].elements[0].distance.value / 1000; // Convert meters to km
+      } else {
+        console.error('Unexpected API response structure:', response.data);
+        return 0; // or handle this case as appropriate for your app
+      }
+    } catch (error) {
+      console.error('Error calculating distance:', error);
+      return 0; // or handle this error as appropriate for your app
+    }
+  }
 
 async function estimateBatteryNeeded(distance, weatherData) {
     // Comment out Tesla API call and use hardcoded efficiency
