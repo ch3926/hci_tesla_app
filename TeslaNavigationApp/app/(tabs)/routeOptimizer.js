@@ -191,10 +191,3 @@ export async function fetchChargingStations(location,radius) {
 export async function fetchTeslaBatteryInfo() {
     return { currentBattery: 75, maxBattery: 100 };
 }
-
-export default {
-    ChargingStation,
-    dpWaypointOptimizer,
-    fetchChargingStations,
-    fetchTeslaBatteryInfo
-};
