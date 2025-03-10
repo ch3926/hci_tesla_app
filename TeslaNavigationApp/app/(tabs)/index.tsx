@@ -18,23 +18,42 @@ export default function MapScreen() {
     });
 
     useEffect(() => {
-        const initializeRoute = async () => {
-            const stations = await fetchChargingStations();
-            const waypoints = await dpWaypointOptimizer();
-            
-            setChargingStations(stations);
-            setOptimizedRoute(waypoints);
-            
-            // Create polyline coordinates
-            const polyline = waypoints.map(point => ({
-                latitude: point.latitude,
-                longitude: point.longitude
-            }));
-            setRoutePolyline(polyline);
-        };
+      const initializeRoute = async () => {
+          try {
+              const stations = await fetchChargingStations();
+              const battery = await fetchTeslaBatteryInfo();
+              const waypoints = await dpWaypointOptimizer(
+                  [currentLocation.latitude, currentLocation.longitude],
+                  [DESTINATION.latitude, DESTINATION.longitude],
+                  battery.currentBattery,
+                  battery.maxBattery,
+                  stations
+              );
+              
+              setOptimizedRoute(waypoints);
+              setBatteryInfo(battery);
+              
+              // Create polyline through optimal stations
+              const polyline = [
+                  currentLocation,
+                  ...waypoints.map(point => ({
+                      latitude: point.latitude,
+                      longitude: point.longitude
+                  })),
+                  DESTINATION
+              ];
+              setRoutePolyline(polyline);
+          } catch (error) {
+              console.error("Route optimization failed:", error.message);
+              // Fallback to direct route
+              setRoutePolyline([currentLocation, DESTINATION]);
+          }
+      };
 
-        initializeRoute();
-    }, []);
+      if (currentLocation) {
+          initializeRoute();
+      }
+  }, [currentLocation]);
 
     return (
         <View style={styles.container}>
