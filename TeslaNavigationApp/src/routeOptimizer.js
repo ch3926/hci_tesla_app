@@ -93,5 +93,5 @@ export async function fetchChargingStations() {
 
 export async function fetchTeslaBatteryInfo() {
     // test 12 to see re route
-    return { currentBattery: 40, maxBattery: 100 };
+    return { currentBattery: 12, maxBattery: 100 };
 }
