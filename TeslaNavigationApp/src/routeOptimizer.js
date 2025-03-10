@@ -1,9 +1,16 @@
 import axios from 'axios';
 
-const GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
+//const GOOGLE_MAPS_API_KEY = "YOUR_GOOGLE_MAPS_API_KEY";
 // const TESLA_API_BASE_URL = "https://owner-api.teslamotors.com/api/1";
 // const TESLA_API_TOKEN = "YOUR_TESLA_API_TOKEN";
 const OPENWEATHERMAP_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY";
+
+const CHARGE_RATE = 150; // kW
+
+// Update in estimateChargingTime
+// async function estimateChargingTime(currentBattery, maxBattery) {
+//   return (maxBattery - currentBattery) / CHARGE_RATE;
+// }
 
 export class ChargingStation {
     constructor(id, location, name, availableSpots) {
@@ -95,13 +102,13 @@ function getTrafficData(origin, destination) {
 export async function dpWaypointOptimizer(start, end, initialBattery, maxBattery, chargingStations) {
     let nodes = [new Node(new ChargingStation("start", start, "Start", null), initialBattery)];
     nodes = nodes.concat(chargingStations.map(station => new Node(station)));
-    nodes.push(new Node(new ChargingStation("end", end,"End", null), null));
+    nodes.push(new Node(new ChargingStation("end", end, "End", null), null));
 
     nodes[0].bestCost = 0;
-    let pq = [[0,nodes[0]]];
+    let pq = [[0, nodes[0]]];
 
     while (pq.length > 0) {
-        let [currentCost,currentNode] = pq.shift();
+        let [currentCost, currentNode] = pq.shift();
 
         if (currentNode.station.id === "end") {
             return convertToWaypoints(reconstructPath(currentNode));
@@ -110,35 +117,29 @@ export async function dpWaypointOptimizer(start, end, initialBattery, maxBattery
         for (let nextNode of nodes) {
             if (nextNode === currentNode) continue;
 
-            // TODO: Restore actual distance calculation
-            let distance = 10; // Hardcoded 10km distance
-
-            // TODO: Restore actual weather data
-            let weather = { temperature: 20, windSpeed: 5 };
-
-            let batteryNeeded = await estimateBatteryNeeded(distance, weather);
+            const distance = await calculateDistance();
+            const weather = await getWeatherData();
+            const batteryNeeded = await estimateBatteryNeeded(distance, weather);
 
             if (currentNode.batteryLevel < batteryNeeded) continue;
 
-            let traffic = getTrafficData(currentNode.station.location, nextNode.station.location);
-            
-            // TODO: Restore actual travel time calculation
-            let timeToNext = 0.5; // Hardcoded 30 minutes
+            const timeToNext = await estimateTravelTime();
+            let chargingTime = nextNode.station.id !== "end" 
+                ? await estimateChargingTime(currentNode.batteryLevel, maxBattery) 
+                : 0;
 
-            let chargingTime = 0;
-            if (nextNode.station.id !== "end") {
-                chargingTime = await estimateChargingTime(currentNode.batteryLevel, maxBattery);
-            }
-
-            let newCost = currentCost + timeToNext + chargingTime;
-            let newBattery = Math.min(maxBattery, currentNode.batteryLevel - batteryNeeded + chargingTime * chargeRate);
+            const newCost = currentCost + timeToNext + chargingTime;
+            const newBattery = Math.min(
+                maxBattery,
+                currentNode.batteryLevel - batteryNeeded + chargingTime * CHARGE_RATE
+            );
 
             if (newCost < nextNode.bestCost) {
                 nextNode.bestCost = newCost;
                 nextNode.bestPrevNode = currentNode;
                 nextNode.batteryLevel = newBattery;
-                pq.push([newCost,nextNode]);
-                pq.sort((a,b) => a[0] - b[0]);
+                pq.push([newCost, nextNode]);
+                pq.sort((a, b) => a[0] - b[0]);
             }
         }
     }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, Button } from 'react-native';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
-import { dpWaypointOptimizer, fetchChargingStations, fetchTeslaBatteryInfo } from './routeOptimizer';
+import { dpWaypointOptimizer, fetchChargingStations, fetchTeslaBatteryInfo } from '../../src/routeOptimizer';
 
 const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
 
