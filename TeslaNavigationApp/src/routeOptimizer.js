@@ -87,7 +87,7 @@ export async function fetchChargingStations() {
     return [
         new ChargingStation("1", [37.3541, -121.9552], "Santa Clara Station", 8),
         new ChargingStation("2", [37.3688, -122.0363], "Los Altos Station", 12),
-        new ChargingStation("3", [34.0722, -118.2737], "Coastal Station", 6)
+        //new ChargingStation("3", [34.0722, -118.2737], "Coastal Station", 6)
     ];
 }
 
