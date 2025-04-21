@@ -10,9 +10,9 @@ export default [
     href: '/climate',
   },
   {
-    name: 'Location',
+    name: 'Navigation',
     iconName: 'map-marker',
-    href: '/location',
+    href: '/navigation',
   },
   {
     name: 'Summon',
