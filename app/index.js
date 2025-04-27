@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     backgroundColor:'#161818'
   },
   header:{
-    marginTop:2,
+    marginTop: 30,
     flexDirection: 'row',
     justifyContent:'space-between',
   },
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     fontSize: 44,
     color:"white",
     fontWeight: "bold",
-    marginBottom:8,
+    marginBottom: 5,
   },
   subtitle: {
     color: "grey",
