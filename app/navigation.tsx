@@ -257,13 +257,19 @@ const ROUTE_POINTS = [
                 <Ionicons name="arrow-back" size={22} color="white" />
                 <Text style={styles.buttonText}>Back</Text>
               </TouchableOpacity>
-              
+  
               <TouchableOpacity 
                 style={styles.actionButton}
+                onPress={() => {
+                  setNavigationStarted(false);
+                  setStartLocationInput('');
+                  setEndLocationInput('');
+                  setSelectedStation(null);
+                }}
                 activeOpacity={0.7}
               >
-                <Ionicons name="refresh" size={20} color="white" />
-                <Text style={styles.buttonText}>Recalculate</Text>
+                <Ionicons name="search" size={20} color="white" />
+                <Text style={styles.buttonText}>Change Route</Text>
               </TouchableOpacity>
             </View>
   
@@ -282,7 +288,7 @@ const ROUTE_POINTS = [
                   >
                     <Ionicons name="close" size={24} color="#666" />
                   </TouchableOpacity>
-                  
+  
                   <View style={styles.panelHeader}>
                     <View style={[
                       styles.stationTypeIcon,
@@ -292,26 +298,26 @@ const ROUTE_POINTS = [
                     </View>
                     <Text style={styles.panelTitle}>{selectedStation.name}</Text>
                   </View>
-                  
+  
                   <View style={styles.panelRow}>
                     <Ionicons name="location" size={16} color="#4285F4" />
                     <Text style={styles.panelText}>{selectedStation.address}</Text>
                   </View>
-                  
+  
                   <View style={styles.panelRow}>
                     <Ionicons name="flash" size={16} color="#FF9500" />
                     <Text style={styles.panelText}>
                       {selectedStation.availableSpots} charging spots available
                     </Text>
                   </View>
-                  
+  
                   <View style={styles.panelRow}>
                     <MaterialIcons name="speed" size={16} color="#34C759" />
                     <Text style={styles.panelText}>
                       {selectedStation.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard charging'}
                     </Text>
                   </View>
-                  
+  
                   <TouchableOpacity 
                     style={styles.navigateButton}
                     activeOpacity={0.8}
