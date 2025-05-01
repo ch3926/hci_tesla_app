@@ -1,338 +1,242 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, Animated, Easing } from 'react-native';import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Animated, Easing, Alert } from 'react-native';
+import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
-const START_LOCATION = { latitude: 37.7749, longitude: -122.4194 }; // San Francisco
-const DESTINATION = { latitude: 37.3387, longitude: -121.8853 }; // San Jose
+const SF_START = { latitude: 37.7749, longitude: -122.4194 };
+const SF_END = { latitude: 37.3387, longitude: -121.8853 };
 
-// Updated route points following Highway 101
-const ROUTE_POINTS = [
-    // San Francisco - Starting point (Downtown)
-    { latitude: 37.7749, longitude: -122.4194 }, 
-  
-    // SF - Mission District
-    { latitude: 37.7580, longitude: -122.4180 },
-    
-    // SF - Potrero Hill
-    { latitude: 37.7520, longitude: -122.4060 },
-    
-    // South San Francisco
-    { latitude: 37.6560, longitude: -122.4070 },
-    
-    // San Bruno
-    { latitude: 37.6300, longitude: -122.4110 },
-    
-    // Millbrae
-    { latitude: 37.6000, longitude: -122.3860 },
-    
-    // Burlingame
-    { latitude: 37.5800, longitude: -122.3660 },
-    
-    // San Mateo
-    { latitude: 37.5470, longitude: -122.3140 },
-    
-    // Belmont
-    { latitude: 37.5180, longitude: -122.2750 },
-    
-    // San Carlos
-    { latitude: 37.5000, longitude: -122.2600 },
-    
-    // Redwood City
-    { latitude: 37.4850, longitude: -122.2360 },
-    
-    // Menlo Park
-    { latitude: 37.4530, longitude: -122.1810 },
-    
-    // Palo Alto
-    { latitude: 37.4240, longitude: -122.1380 },
-    
-    // Mountain View
-    { latitude: 37.3860, longitude: -122.0830 },
-    
-    // Sunnyvale
-    { latitude: 37.3680, longitude: -122.0360 },
-    
-    // Santa Clara
-    { latitude: 37.3540, longitude: -121.9850 },
-    
-    // San Jose - Destination (Downtown)
-    { latitude: 37.3387, longitude: -121.8853 }
-  ];
-  
-  // Updated charging stations along actual highway exits
-  const CHARGING_STATIONS = [
-    {
-      id: '1',
-      name: 'Tesla Supercharger - S San Francisco',
-      location: [37.6560, -122.4070], // Near SFO
-      availableSpots: 6,
-      distance: '12 mi',
-      address: '1150 Airport Blvd, S San Francisco',
-      type: 'fast'
-    },
-    {
-      id: '2',
-      name: 'Electrify America - San Mateo',
-      location: [37.5470, -122.3140], // Near Hillsdale Mall
-      availableSpots: 4,
-      distance: '25 mi',
-      address: '60 31st Ave, San Mateo',
-      type: 'fast'
-    },
-    {
-      id: '3',
-      name: 'EVgo - Palo Alto',
-      location: [37.4240, -122.1380], // Near Stanford
-      availableSpots: 2,
-      distance: '38 mi',
-      address: '180 El Camino Real, Palo Alto',
-      type: 'standard'
-    }
-  ];
+const SF_ROUTE = [
+  { latitude: 37.7749, longitude: -122.4194 }, { latitude: 37.7580, longitude: -122.4180 }, { latitude: 37.7520, longitude: -122.4060 },
+  { latitude: 37.6560, longitude: -122.4070 }, { latitude: 37.6300, longitude: -122.4110 }, { latitude: 37.6000, longitude: -122.3860 },
+  { latitude: 37.5800, longitude: -122.3660 }, { latitude: 37.5470, longitude: -122.3140 }, { latitude: 37.5180, longitude: -122.2750 },
+  { latitude: 37.5000, longitude: -122.2600 }, { latitude: 37.4850, longitude: -122.2360 }, { latitude: 37.4530, longitude: -122.1810 },
+  { latitude: 37.4240, longitude: -122.1380 }, { latitude: 37.3860, longitude: -122.0830 }, { latitude: 37.3680, longitude: -122.0360 },
+  { latitude: 37.3540, longitude: -121.9850 }, { latitude: 37.3387, longitude: -121.8853 }
+];
 
-  const BatteryDisplay = ({ level }) => {
-    const getBatteryColor = () => {
-      if (level < 20) return '#FF3B30';
-      if (level < 50) return '#FF9500';
-      return '#34C759';
-    };
-  
-    return (
-      <View style={styles.batteryContainer}>
-        <Ionicons name="battery-full" size={24} color={getBatteryColor()} />
-        <Text style={[styles.batteryText, { color: getBatteryColor() }]}>
-          {level}%
-        </Text>
-      </View>
-    );
+const SF_STATIONS = [
+  { id: '1', name: 'Tesla Supercharger - S San Francisco', location: [37.6560, -122.4070], availableSpots: 6, distance: '12 mi', address: '1150 Airport Blvd, S San Francisco', type: 'fast' },
+  { id: '2', name: 'Electrify America - San Mateo', location: [37.5470, -122.3140], availableSpots: 4, distance: '25 mi', address: '60 31st Ave, San Mateo', type: 'fast' },
+  { id: '3', name: 'EVgo - Palo Alto', location: [37.4240, -122.1380], availableSpots: 2, distance: '38 mi', address: '180 El Camino Real, Palo Alto', type: 'standard' }
+];
+
+const NY_START = { latitude: 40.7831, longitude: -73.9712 };
+const NY_END = { latitude: 40.6782, longitude: -73.9442 };
+
+const NY_ROUTE = [
+  { latitude: 40.7831, longitude: -73.9712 }, { latitude: 40.7681, longitude: -73.9812 }, { latitude: 40.7580, longitude: -73.9855 },
+  { latitude: 40.7484, longitude: -73.9857 }, { latitude: 40.7308, longitude: -73.9973 }, { latitude: 40.7061, longitude: -74.0086 },
+  { latitude: 40.6939, longitude: -73.9850 }, { latitude: 40.6782, longitude: -73.9442 }
+];
+
+const NY_STATIONS = [
+  { id: 'ny1', name: 'EVgo - Lower Manhattan', location: [40.7061, -74.0086], availableSpots: 0, distance: '2.3 mi', address: '85 Broad St, New York, NY', type: 'fast' },
+  { id: 'ny2', name: 'Tesla Supercharger - Brooklyn', location: [40.6939, -73.9850], availableSpots: 5, distance: '3.7 mi', address: '210 Flatbush Ave, Brooklyn, NY', type: 'standard' }
+];
+
+const BatteryDisplay = ({ level }) => {
+  const getBatteryColor = () => {
+    if (level < 20) return '#FF3B30';
+    if (level < 50) return '#FF9500';
+    return '#34C759';
   };
-  
-  export default function MapScreen() {
-    const router = useRouter();
-    const [selectedStation, setSelectedStation] = useState(null);
-    const [calloutVisible, setCalloutVisible] = useState(null);
-    const [navigationStarted, setNavigationStarted] = useState(false);
-    const [startLocationInput, setStartLocationInput] = useState('');
-    const [endLocationInput, setEndLocationInput] = useState('');
-    const panelPosition = useRef(new Animated.Value(300)).current;
-    const batteryLevel = 65;
-  
-    const handleStationPress = (stationId) => {
-      const station = CHARGING_STATIONS.find(s => s.id === stationId);
-      setSelectedStation(station);
-      setCalloutVisible(stationId);
-    };
-  
-    useEffect(() => {
-      Animated.timing(panelPosition, {
-        toValue: selectedStation ? 0 : 300,
-        duration: 300,
-        easing: Easing.out(Easing.exp),
-        useNativeDriver: true
-      }).start();
-    }, [selectedStation]);
-  
-    return (
-      <View style={styles.container}>
-        {!navigationStarted && (
-          <View style={styles.searchContainer}>
-            <View style={styles.searchBox}>
-              <Text>Start Location:</Text>
-              <TextInput
-                value={startLocationInput}
-                onChangeText={setStartLocationInput}
-                placeholder="e.g., San Francisco"
-                style={styles.input}
-              />
-            </View>
-            <View style={styles.searchBox}>
-              <Text>End Location:</Text>
-              <TextInput
-                value={endLocationInput}
-                onChangeText={setEndLocationInput}
-                placeholder="e.g., San Jose"
-                style={styles.input}
-              />
-            </View>
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={() => {
-                if (
-                  startLocationInput.trim().toLowerCase() === 'san francisco' &&
-                  endLocationInput.trim().toLowerCase() === 'san jose'
-                ) {
-                  setNavigationStarted(true);
-                } else {
-                  Alert.alert('Unsupported Route', 'Only San Francisco to San Jose is supported for now.');
-                }
-              }}
-            >
-              <Text style={styles.buttonText}>Start Navigation</Text>
-            </TouchableOpacity>
+
+  return (
+    <View style={styles.batteryContainer}>
+      <Ionicons name="battery-full" size={24} color={getBatteryColor()} />
+      <Text style={[styles.batteryText, { color: getBatteryColor() }]}>{level}%</Text>
+    </View>
+  );
+};
+
+export default function MapScreen() {
+  const router = useRouter();
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [calloutVisible, setCalloutVisible] = useState(null);
+  const [navigationStarted, setNavigationStarted] = useState(false);
+  const [startLocationInput, setStartLocationInput] = useState('');
+  const [endLocationInput, setEndLocationInput] = useState('');
+  const [routePoints, setRoutePoints] = useState([]);
+  const [chargingStations, setChargingStations] = useState([]);
+  const [startMarker, setStartMarker] = useState(null);
+  const [endMarker, setEndMarker] = useState(null);
+  const panelPosition = useRef(new Animated.Value(300)).current;
+  const batteryLevel = 65;
+
+  const handleStationPress = (stationId) => {
+    const station = chargingStations.find(s => s.id === stationId);
+    setSelectedStation(station);
+    setCalloutVisible(stationId);
+  };
+
+  useEffect(() => {
+    Animated.timing(panelPosition, {
+      toValue: selectedStation ? 0 : 300,
+      duration: 300,
+      easing: Easing.out(Easing.exp),
+      useNativeDriver: true
+    }).start();
+  }, [selectedStation]);
+
+  return (
+    <View style={styles.container}>
+      {!navigationStarted && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBox}>
+            <Text>Start Location:</Text>
+            <TextInput
+              value={startLocationInput}
+              onChangeText={setStartLocationInput}
+              placeholder="e.g., San Francisco"
+              style={styles.input}
+            />
           </View>
-        )}
-  
-        {navigationStarted && (
-          <>
-            <View style={styles.header}>
-              <BatteryDisplay level={batteryLevel} />
-              <View style={styles.routeInfo}>
-                <View style={styles.infoItem}>
-                  <MaterialIcons name="timer" size={18} color="#5E5E5E" />
-                  <Text style={styles.infoText}>1h 15m</Text>
-                </View>
-                <View style={styles.infoItem}>
-                  <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
-                  <Text style={styles.infoText}>48 miles</Text>
-                </View>
+          <View style={styles.searchBox}>
+            <Text>End Location:</Text>
+            <TextInput
+              value={endLocationInput}
+              onChangeText={setEndLocationInput}
+              placeholder="e.g., San Jose"
+              style={styles.input}
+            />
+          </View>
+          <TouchableOpacity
+            style={styles.startButton}
+            onPress={() => {
+              const start = startLocationInput.trim().toLowerCase();
+              const end = endLocationInput.trim().toLowerCase();
+              if (start === 'san francisco' && end === 'san jose') {
+                setRoutePoints(SF_ROUTE);
+                setChargingStations(SF_STATIONS);
+                setStartMarker(SF_START);
+                setEndMarker(SF_END);
+                setNavigationStarted(true);
+              } else if (start === 'manhattan' && end === 'brooklyn') {
+                setRoutePoints(NY_ROUTE);
+                setChargingStations(NY_STATIONS);
+                setStartMarker(NY_START);
+                setEndMarker(NY_END);
+                setNavigationStarted(true);
+              } else {
+                Alert.alert('Unsupported Route', 'Try San Francisco to San Jose or Manhattan to Brooklyn.');
+              }
+            }}
+          >
+            <Text style={styles.buttonText}>Start Navigation</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {navigationStarted && (
+        <>
+          <View style={styles.header}>
+            <BatteryDisplay level={batteryLevel} />
+            <View style={styles.routeInfo}>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="timer" size={18} color="#5E5E5E" />
+                <Text style={styles.infoText}>1h 15m</Text>
+              </View>
+              <View style={styles.infoItem}>
+                <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
+                <Text style={styles.infoText}>48 miles</Text>
               </View>
             </View>
-  
-            <MapView
-              style={styles.map}
-              initialRegion={{
-                latitude: 37.65,
-                longitude: -122.25,
-                latitudeDelta: 0.5,
-                longitudeDelta: 0.5,
-              }}
-              showsUserLocation={true}
-            >
-              <Marker coordinate={START_LOCATION}>
+          </View>
+
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: startMarker?.latitude || 37.65,
+              longitude: startMarker?.longitude || -122.25,
+              latitudeDelta: 0.5,
+              longitudeDelta: 0.5,
+            }}
+            showsUserLocation={true}
+          >
+            {startMarker && (
+              <Marker coordinate={startMarker}>
                 <View style={styles.currentMarker}>
                   <View style={styles.currentMarkerInner} />
                 </View>
               </Marker>
-  
-              <Marker coordinate={DESTINATION}>
+            )}
+
+            {endMarker && (
+              <Marker coordinate={endMarker}>
                 <View style={styles.destinationMarker}>
                   <Ionicons name="flag" size={18} color="white" />
                 </View>
               </Marker>
-  
-              {CHARGING_STATIONS.map(station => (
-                <Marker
-                  key={station.id}
-                  coordinate={{
-                    latitude: station.location[0],
-                    longitude: station.location[1]
-                  }}
-                  onPress={() => handleStationPress(station.id)}
-                >
-                  <View style={[
-                    styles.stationMarker,
-                    calloutVisible === station.id && styles.stationMarkerSelected,
-                    station.type === 'fast' ? styles.fastStation : styles.standardStation
-                  ]}>
-                    <FontAwesome name="bolt" size={14} color="white" />
-                  </View>
-                  <Callout onPress={() => handleStationPress(station.id)}>
-                    <View style={styles.callout}>
-                      <Text style={styles.calloutTitle}>{station.name}</Text>
-                      <Text style={styles.calloutSubtitle}>
-                        {station.availableSpots} spots • {station.distance} mi
-                      </Text>
-                      <Text style={styles.calloutSubtitle}>
-                        {station.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard'}
-                      </Text>
-                    </View>
-                  </Callout>
-                </Marker>
-              ))}
-  
-              <Polyline
-                coordinates={ROUTE_POINTS}
-                strokeColor="#4285F4"
-                strokeWidth={4}
-              />
-            </MapView>
-  
-            <View style={styles.controls}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => router.back()}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="arrow-back" size={22} color="white" />
-                <Text style={styles.buttonText}>Back</Text>
-              </TouchableOpacity>
-  
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={() => {
-                  setNavigationStarted(false);
-                  setStartLocationInput('');
-                  setEndLocationInput('');
-                  setSelectedStation(null);
+            )}
+
+            {chargingStations.map(station => (
+              <Marker
+                key={station.id}
+                coordinate={{
+                  latitude: station.location[0],
+                  longitude: station.location[1]
                 }}
-                activeOpacity={0.7}
+                onPress={() => handleStationPress(station.id)}
               >
-                <Ionicons name="search" size={20} color="white" />
-                <Text style={styles.buttonText}>Change Route</Text>
-              </TouchableOpacity>
-            </View>
-  
-            <Animated.View 
-              style={[
-                styles.panel,
-                { transform: [{ translateY: panelPosition }] },
-                !selectedStation && styles.panelHidden
-              ]}
+                <View style={[
+                  styles.stationMarker,
+                  calloutVisible === station.id && styles.stationMarkerSelected,
+                  station.type === 'fast' ? styles.fastStation : styles.standardStation
+                ]}>
+                  <FontAwesome name="bolt" size={14} color="white" />
+                </View>
+                <Callout onPress={() => handleStationPress(station.id)}>
+                  <View style={styles.callout}>
+                    <Text style={styles.calloutTitle}>{station.name}</Text>
+                    <Text style={styles.calloutSubtitle}>
+                      {station.availableSpots} spots • {station.distance}
+                    </Text>
+                    <Text style={styles.calloutSubtitle}>
+                      {station.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard'}
+                    </Text>
+                  </View>
+                </Callout>
+              </Marker>
+            ))}
+
+            <Polyline
+              coordinates={routePoints}
+              strokeColor="#4285F4"
+              strokeWidth={4}
+            />
+          </MapView>
+
+          <View style={styles.controls}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.7}
             >
-              {selectedStation && (
-                <>
-                  <TouchableOpacity 
-                    style={styles.closeButton}
-                    onPress={() => setSelectedStation(null)}
-                  >
-                    <Ionicons name="close" size={24} color="#666" />
-                  </TouchableOpacity>
-  
-                  <View style={styles.panelHeader}>
-                    <View style={[
-                      styles.stationTypeIcon,
-                      selectedStation.type === 'fast' ? styles.fastIcon : styles.standardIcon
-                    ]}>
-                      <FontAwesome name="bolt" size={14} color="white" />
-                    </View>
-                    <Text style={styles.panelTitle}>{selectedStation.name}</Text>
-                  </View>
-  
-                  <View style={styles.panelRow}>
-                    <Ionicons name="location" size={16} color="#4285F4" />
-                    <Text style={styles.panelText}>{selectedStation.address}</Text>
-                  </View>
-  
-                  <View style={styles.panelRow}>
-                    <Ionicons name="flash" size={16} color="#FF9500" />
-                    <Text style={styles.panelText}>
-                      {selectedStation.availableSpots} charging spots available
-                    </Text>
-                  </View>
-  
-                  <View style={styles.panelRow}>
-                    <MaterialIcons name="speed" size={16} color="#34C759" />
-                    <Text style={styles.panelText}>
-                      {selectedStation.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard charging'}
-                    </Text>
-                  </View>
-  
-                  <TouchableOpacity 
-                    style={styles.navigateButton}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.navigateButtonText}>Navigate to Station</Text>
-                    <MaterialIcons name="navigation" size={20} color="white" />
-                  </TouchableOpacity>
-                </>
-              )}
-            </Animated.View>
-          </>
-        )}
-      </View>
-    );
-  }
+              <Ionicons name="arrow-back" size={22} color="white" />
+              <Text style={styles.buttonText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => {
+                setNavigationStarted(false);
+                setStartLocationInput('');
+                setEndLocationInput('');
+                setSelectedStation(null);
+              }}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={20} color="white" />
+              <Text style={styles.buttonText}>Change Route</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
     container: {
