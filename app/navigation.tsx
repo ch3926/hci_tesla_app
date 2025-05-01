@@ -37,8 +37,8 @@ const NY_ROUTE = [
 ];
 
 const NY_STATIONS = [
-  { id: 'ny1', name: 'EVgo - Lower Manhattan', location: [40.7061, -74.0086], availableSpots: 0, distance: '2.3 mi', address: '85 Broad St, New York, NY', type: 'fast' },
-  { id: 'ny2', name: 'Tesla Supercharger - Brooklyn', location: [40.6939, -73.9850], availableSpots: 5, distance: '3.7 mi', address: '210 Flatbush Ave, Brooklyn, NY', type: 'standard' }
+  { id: 'ny1', name: 'EVgo - Lower Manhattan', location: [40.7061, -74.0086], availableSpots: 5, distance: '2.3 mi', address: '85 Broad St, New York, NY', type: 'standard' },
+  { id: 'ny2', name: 'Tesla Supercharger - Brooklyn', location: [40.6939, -73.9850], availableSpots: 0, distance: '3.7 mi', address: '210 Flatbush Ave, Brooklyn, NY', type: 'fast' }
 ];
 
 const BatteryDisplay = ({ level }) => {
