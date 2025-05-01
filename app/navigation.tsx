@@ -64,6 +64,9 @@ export default function MapScreen() {
   const [endMarker, setEndMarker] = useState(null);
   const panelPosition = useRef(new Animated.Value(300)).current;
   const batteryLevel = 65;
+  const [estimatedTime, setEstimatedTime] = useState('');
+  const [estimatedDistance, setEstimatedDistance] = useState('');
+
 
   const handleStationPress = (stationId) => {
     const station = chargingStations.find(s => s.id === stationId);
@@ -112,12 +115,16 @@ export default function MapScreen() {
                 setChargingStations(SF_STATIONS);
                 setStartMarker(SF_START);
                 setEndMarker(SF_END);
+                setEstimatedTime('1h 15m');
+                setEstimatedDistance('48 miles');
                 setNavigationStarted(true);
               } else if (start === 'manhattan' && end === 'brooklyn') {
                 setRoutePoints(NY_ROUTE);
                 setChargingStations(NY_STATIONS);
                 setStartMarker(NY_START);
                 setEndMarker(NY_END);
+                setEstimatedTime('35 min');
+                setEstimatedDistance('10 miles');
                 setNavigationStarted(true);
               } else {
                 Alert.alert('Unsupported Route', 'Try San Francisco to San Jose or Manhattan to Brooklyn.');
@@ -134,14 +141,14 @@ export default function MapScreen() {
           <View style={styles.header}>
             <BatteryDisplay level={batteryLevel} />
             <View style={styles.routeInfo}>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="timer" size={18} color="#5E5E5E" />
-                <Text style={styles.infoText}>1h 15m</Text>
-              </View>
-              <View style={styles.infoItem}>
-                <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
-                <Text style={styles.infoText}>48 miles</Text>
-              </View>
+            <View style={styles.infoItem}>
+            <MaterialIcons name="timer" size={18} color="#5E5E5E" />
+            <Text style={styles.infoText}>{estimatedTime}</Text>
+            </View>
+            <View style={styles.infoItem}>
+            <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
+            <Text style={styles.infoText}>{estimatedDistance}</Text>
+            </View>
             </View>
           </View>
 
