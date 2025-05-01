@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Animated, Easing } from 'react-native';
-import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, Animated, Easing } from 'react-native';import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
@@ -92,212 +91,242 @@ const ROUTE_POINTS = [
     }
   ];
 
-const BatteryDisplay = ({ level }) => {
-  const getBatteryColor = () => {
-    if (level < 20) return '#FF3B30';
-    if (level < 50) return '#FF9500';
-    return '#34C759';
+  const BatteryDisplay = ({ level }) => {
+    const getBatteryColor = () => {
+      if (level < 20) return '#FF3B30';
+      if (level < 50) return '#FF9500';
+      return '#34C759';
+    };
+  
+    return (
+      <View style={styles.batteryContainer}>
+        <Ionicons name="battery-full" size={24} color={getBatteryColor()} />
+        <Text style={[styles.batteryText, { color: getBatteryColor() }]}>
+          {level}%
+        </Text>
+      </View>
+    );
   };
-
-  return (
-    <View style={styles.batteryContainer}>
-      <Ionicons 
-        name="battery-full" 
-        size={24} 
-        color={getBatteryColor()} 
-      />
-      <Text style={[styles.batteryText, { color: getBatteryColor() }]}>
-        {level}%
-      </Text>
-    </View>
-  );
-};
-
-export default function MapScreen() {
+  
+  export default function MapScreen() {
     const router = useRouter();
     const [selectedStation, setSelectedStation] = useState(null);
     const [calloutVisible, setCalloutVisible] = useState(null);
+    const [navigationStarted, setNavigationStarted] = useState(false);
+    const [startLocationInput, setStartLocationInput] = useState('');
+    const [endLocationInput, setEndLocationInput] = useState('');
     const panelPosition = useRef(new Animated.Value(300)).current;
     const batteryLevel = 65;
-
+  
     const handleStationPress = (stationId) => {
-        const station = CHARGING_STATIONS.find(s => s.id === stationId);
-        setSelectedStation(station);
-        setCalloutVisible(stationId);
+      const station = CHARGING_STATIONS.find(s => s.id === stationId);
+      setSelectedStation(station);
+      setCalloutVisible(stationId);
     };
-
+  
     useEffect(() => {
-        if (selectedStation) {
-            Animated.timing(panelPosition, {
-                toValue: 0,
-                duration: 300,
-                easing: Easing.out(Easing.exp),
-                useNativeDriver: true
-            }).start();
-        } else {
-            Animated.timing(panelPosition, {
-                toValue: 300,
-                duration: 250,
-                easing: Easing.in(Easing.exp),
-                useNativeDriver: true
-            }).start();
-        }
+      Animated.timing(panelPosition, {
+        toValue: selectedStation ? 0 : 300,
+        duration: 300,
+        easing: Easing.out(Easing.exp),
+        useNativeDriver: true
+      }).start();
     }, [selectedStation]);
-
+  
     return (
-        <View style={styles.container}>
+      <View style={styles.container}>
+        {!navigationStarted && (
+          <View style={styles.searchContainer}>
+            <View style={styles.searchBox}>
+              <Text>Start Location:</Text>
+              <TextInput
+                value={startLocationInput}
+                onChangeText={setStartLocationInput}
+                placeholder="e.g., San Francisco"
+                style={styles.input}
+              />
+            </View>
+            <View style={styles.searchBox}>
+              <Text>End Location:</Text>
+              <TextInput
+                value={endLocationInput}
+                onChangeText={setEndLocationInput}
+                placeholder="e.g., San Jose"
+                style={styles.input}
+              />
+            </View>
+            <TouchableOpacity
+              style={styles.startButton}
+              onPress={() => {
+                if (
+                  startLocationInput.trim().toLowerCase() === 'san francisco' &&
+                  endLocationInput.trim().toLowerCase() === 'san jose'
+                ) {
+                  setNavigationStarted(true);
+                } else {
+                  Alert.alert('Unsupported Route', 'Only San Francisco to San Jose is supported for now.');
+                }
+              }}
+            >
+              <Text style={styles.buttonText}>Start Navigation</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+  
+        {navigationStarted && (
+          <>
             <View style={styles.header}>
-                <BatteryDisplay level={batteryLevel} />
-                
-                <View style={styles.routeInfo}>
-                    <View style={styles.infoItem}>
-                        <MaterialIcons name="timer" size={18} color="#5E5E5E" />
-                        <Text style={styles.infoText}>1h 15m</Text>
-                    </View>
-                    <View style={styles.infoItem}>
-                        <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
-                        <Text style={styles.infoText}>48 miles</Text>
-                    </View>
+              <BatteryDisplay level={batteryLevel} />
+              <View style={styles.routeInfo}>
+                <View style={styles.infoItem}>
+                  <MaterialIcons name="timer" size={18} color="#5E5E5E" />
+                  <Text style={styles.infoText}>1h 15m</Text>
                 </View>
+                <View style={styles.infoItem}>
+                  <MaterialIcons name="directions-car" size={18} color="#5E5E5E" />
+                  <Text style={styles.infoText}>48 miles</Text>
+                </View>
+              </View>
             </View>
-
+  
             <MapView
-                style={styles.map}
-                initialRegion={{
-                    latitude: 37.65,
-                    longitude: -122.25,
-                    latitudeDelta: 0.5,
-                    longitudeDelta: 0.5,
-                }}
-                showsUserLocation={true}
+              style={styles.map}
+              initialRegion={{
+                latitude: 37.65,
+                longitude: -122.25,
+                latitudeDelta: 0.5,
+                longitudeDelta: 0.5,
+              }}
+              showsUserLocation={true}
             >
-                <Marker coordinate={START_LOCATION}>
-                    <View style={styles.currentMarker}>
-                        <View style={styles.currentMarkerInner} />
+              <Marker coordinate={START_LOCATION}>
+                <View style={styles.currentMarker}>
+                  <View style={styles.currentMarkerInner} />
+                </View>
+              </Marker>
+  
+              <Marker coordinate={DESTINATION}>
+                <View style={styles.destinationMarker}>
+                  <Ionicons name="flag" size={18} color="white" />
+                </View>
+              </Marker>
+  
+              {CHARGING_STATIONS.map(station => (
+                <Marker
+                  key={station.id}
+                  coordinate={{
+                    latitude: station.location[0],
+                    longitude: station.location[1]
+                  }}
+                  onPress={() => handleStationPress(station.id)}
+                >
+                  <View style={[
+                    styles.stationMarker,
+                    calloutVisible === station.id && styles.stationMarkerSelected,
+                    station.type === 'fast' ? styles.fastStation : styles.standardStation
+                  ]}>
+                    <FontAwesome name="bolt" size={14} color="white" />
+                  </View>
+                  <Callout onPress={() => handleStationPress(station.id)}>
+                    <View style={styles.callout}>
+                      <Text style={styles.calloutTitle}>{station.name}</Text>
+                      <Text style={styles.calloutSubtitle}>
+                        {station.availableSpots} spots • {station.distance} mi
+                      </Text>
+                      <Text style={styles.calloutSubtitle}>
+                        {station.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard'}
+                      </Text>
                     </View>
+                  </Callout>
                 </Marker>
-
-                <Marker coordinate={DESTINATION}>
-                    <View style={styles.destinationMarker}>
-                        <Ionicons name="flag" size={18} color="white" />
-                    </View>
-                </Marker>
-
-                {CHARGING_STATIONS.map(station => (
-                    <Marker
-                        key={station.id}
-                        coordinate={{
-                            latitude: station.location[0],
-                            longitude: station.location[1]
-                        }}
-                        onPress={() => handleStationPress(station.id)}
-                    >
-                        <View style={[
-                            styles.stationMarker,
-                            calloutVisible === station.id && styles.stationMarkerSelected,
-                            station.type === 'fast' ? styles.fastStation : styles.standardStation
-                        ]}>
-                            <FontAwesome name="bolt" size={14} color="white" />
-                        </View>
-                        <Callout onPress={() => handleStationPress(station.id)}>
-                            <View style={styles.callout}>
-                                <Text style={styles.calloutTitle}>{station.name}</Text>
-                                <Text style={styles.calloutSubtitle}>
-                                    {station.availableSpots} spots • {station.distance} mi
-                                </Text>
-                                <Text style={styles.calloutSubtitle}>
-                                    {station.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard'}
-                                </Text>
-                            </View>
-                        </Callout>
-                    </Marker>
-                ))}
-
-                <Polyline
-                    coordinates={ROUTE_POINTS}
-                    strokeColor="#4285F4"
-                    strokeWidth={4}
-                    lineDashPattern={[1]} // Solid line
-                />
+              ))}
+  
+              <Polyline
+                coordinates={ROUTE_POINTS}
+                strokeColor="#4285F4"
+                strokeWidth={4}
+              />
             </MapView>
-
+  
             <View style={styles.controls}>
-                <TouchableOpacity 
-                    style={styles.backButton}
-                    onPress={() => router.back()}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="arrow-back" size={22} color="white" />
-                    <Text style={styles.buttonText}>Back</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                    style={styles.actionButton}
-                    activeOpacity={0.7}
-                >
-                    <Ionicons name="refresh" size={20} color="white" />
-                    <Text style={styles.buttonText}>Recalculate</Text>
-                </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.backButton}
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={22} color="white" />
+                <Text style={styles.buttonText}>Back</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.actionButton}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="refresh" size={20} color="white" />
+                <Text style={styles.buttonText}>Recalculate</Text>
+              </TouchableOpacity>
             </View>
-
+  
             <Animated.View 
-                style={[
-                    styles.panel,
-                    { transform: [{ translateY: panelPosition }] },
-                    !selectedStation && styles.panelHidden
-                ]}
+              style={[
+                styles.panel,
+                { transform: [{ translateY: panelPosition }] },
+                !selectedStation && styles.panelHidden
+              ]}
             >
-                {selectedStation && (
-                    <>
-                        <TouchableOpacity 
-                            style={styles.closeButton}
-                            onPress={() => setSelectedStation(null)}
-                        >
-                            <Ionicons name="close" size={24} color="#666" />
-                        </TouchableOpacity>
-                        
-                        <View style={styles.panelHeader}>
-                            <View style={[
-                                styles.stationTypeIcon,
-                                selectedStation.type === 'fast' ? styles.fastIcon : styles.standardIcon
-                            ]}>
-                                <FontAwesome name="bolt" size={14} color="white" />
-                            </View>
-                            <Text style={styles.panelTitle}>{selectedStation.name}</Text>
-                        </View>
-                        
-                        <View style={styles.panelRow}>
-                            <Ionicons name="location" size={16} color="#4285F4" />
-                            <Text style={styles.panelText}>{selectedStation.address}</Text>
-                        </View>
-                        
-                        <View style={styles.panelRow}>
-                            <Ionicons name="flash" size={16} color="#FF9500" />
-                            <Text style={styles.panelText}>
-                                {selectedStation.availableSpots} charging spots available
-                            </Text>
-                        </View>
-                        
-                        <View style={styles.panelRow}>
-                            <MaterialIcons name="speed" size={16} color="#34C759" />
-                            <Text style={styles.panelText}>
-                                {selectedStation.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard charging'}
-                            </Text>
-                        </View>
-                        
-                        <TouchableOpacity 
-                            style={styles.navigateButton}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.navigateButtonText}>Navigate to Station</Text>
-                            <MaterialIcons name="navigation" size={20} color="white" />
-                        </TouchableOpacity>
-                    </>
-                )}
+              {selectedStation && (
+                <>
+                  <TouchableOpacity 
+                    style={styles.closeButton}
+                    onPress={() => setSelectedStation(null)}
+                  >
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                  
+                  <View style={styles.panelHeader}>
+                    <View style={[
+                      styles.stationTypeIcon,
+                      selectedStation.type === 'fast' ? styles.fastIcon : styles.standardIcon
+                    ]}>
+                      <FontAwesome name="bolt" size={14} color="white" />
+                    </View>
+                    <Text style={styles.panelTitle}>{selectedStation.name}</Text>
+                  </View>
+                  
+                  <View style={styles.panelRow}>
+                    <Ionicons name="location" size={16} color="#4285F4" />
+                    <Text style={styles.panelText}>{selectedStation.address}</Text>
+                  </View>
+                  
+                  <View style={styles.panelRow}>
+                    <Ionicons name="flash" size={16} color="#FF9500" />
+                    <Text style={styles.panelText}>
+                      {selectedStation.availableSpots} charging spots available
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.panelRow}>
+                    <MaterialIcons name="speed" size={16} color="#34C759" />
+                    <Text style={styles.panelText}>
+                      {selectedStation.type === 'fast' ? '150kW • Fast charging' : '50kW • Standard charging'}
+                    </Text>
+                  </View>
+                  
+                  <TouchableOpacity 
+                    style={styles.navigateButton}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.navigateButtonText}>Navigate to Station</Text>
+                    <MaterialIcons name="navigation" size={20} color="white" />
+                  </TouchableOpacity>
+                </>
+              )}
             </Animated.View>
-        </View>
+          </>
+        )}
+      </View>
     );
-}
+  }
 
 const styles = StyleSheet.create({
     container: {
@@ -523,4 +552,30 @@ const styles = StyleSheet.create({
         fontSize: 16,
         marginRight: 8,
     },
+    searchContainer: {
+    position: 'absolute',
+    top: 80,
+    left: 20,
+    right: 20,
+    zIndex: 100,
+    },
+    searchBox: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+    },
+    input: {
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    marginTop: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    },
+    startButton: {
+    backgroundColor: '#4285F4',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+}
 });
