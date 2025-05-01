@@ -4,6 +4,11 @@ import MapView, { Marker, Polyline, Callout } from 'react-native-maps';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons, FontAwesome } from '@expo/vector-icons';
 
+const RECENT_ROUTES = [
+    { id: 'sf-sj', label: 'San Francisco → San Jose', start: 'San Francisco', end: 'San Jose' },
+    { id: 'nyc-bk', label: 'Manhattan → Brooklyn', start: 'Manhattan', end: 'Brooklyn' }
+  ];
+
 const SF_START = { latitude: 37.7749, longitude: -122.4194 };
 const SF_END = { latitude: 37.3387, longitude: -121.8853 };
 
@@ -105,6 +110,26 @@ export default function MapScreen() {
               style={styles.input}
             />
           </View>
+          <View style={{ marginBottom: 20 }}>
+  <Text style={{ fontWeight: '600', marginBottom: 8 }}>Recent Routes:</Text>
+  {RECENT_ROUTES.map(route => (
+    <TouchableOpacity
+      key={route.id}
+      style={{
+        padding: 12,
+        borderRadius: 8,
+        backgroundColor: '#e0e0e0',
+        marginBottom: 10
+      }}
+      onPress={() => {
+        setStartLocationInput(route.start);
+        setEndLocationInput(route.end);
+      }}
+    >
+      <Text style={{ fontSize: 14 }}>{route.label}</Text>
+    </TouchableOpacity>
+  ))}
+</View>
           <TouchableOpacity
             style={styles.startButton}
             onPress={() => {
