@@ -1,0 +1,6 @@
+temperature,wind_speed,load_kg,elevation_gain,speed_avg,battery_age,consumption
+20,10,150,0,80,2.5,0.18
+-5,25,300,150,45,1.0,0.35
+15,5,80,-50,100,3.0,0.22
+10,15,200,75,60,2.0,0.28
+25,8,120,30,90,1.5,0.20
