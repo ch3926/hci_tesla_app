@@ -359,10 +359,10 @@ const styles = StyleSheet.create({
         shadowRadius: 4,
     },
     fastStation: {
-        backgroundColor: '#FF9500',
+        backgroundColor: '#a9a9a9', // '#FF9500'
     },
     standardStation: {
-        backgroundColor: '#5856D6',
+        backgroundColor: '#FF9500', // '#5856D6'
     },
     stationMarkerSelected: {
         width: 34,
